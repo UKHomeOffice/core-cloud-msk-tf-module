@@ -1,0 +1,207 @@
+resource "aws_vpc" "vpc" {
+  cidr_block = var.vpc_cidr
+}
+
+resource "aws_security_group" "sg_msk" {
+  name        = "${var.project_name}-${var.cluster_name}-${var.environment}-msk-sg"
+  description = "Security group for ${var.project_name}-${var.cluster_name}-${var.environment}-msk"
+  vpc_id      = var.vpc_id
+
+  #Kafka Broker TLS port
+  ingress {
+    from_port   = 2182
+    to_port     = 2182
+    protocol    = "tcp"
+    cidr_blocks = var.vpc_cidr
+    description = "Security group Kafka ingress rule for ${var.project_name}-${var.cluster_name}-${var.environment}-msk"
+  }
+
+  #Zookeeper TLS port
+  ingress {
+    from_port   = 9094
+    to_port     = 9094
+    protocol    = "tcp"
+    cidr_blocks = var.vpc_cidr
+    description = "Security group Zookeeper ingress rule for ${var.project_name}-${var.cluster_name}-${var.environment}-msk"
+  }
+
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "tcp"
+    # Change this to your internal VPC CIDR or a specific monitoring IP. Egress should be restricted to internal VPC only
+    cidr_blocks = var.vpc_cidr
+    description = "Security group egress rule for ${var.project_name}-${var.cluster_name}-${var.environment}-msk"
+  }
+}
+
+
+resource "aws_kms_key" "msk" {
+  description             = "KMS key for MSK encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = local.common_tags
+}
+
+resource "aws_kms_key_policy" "msk_kms_policy" {
+  key_id = aws_kms_key.msk.id
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Id" : "msk_kms_policy",
+    "Statement" : [
+      {
+        "Sid" : "EnableIAMUserPermissions",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${var.account_id}:root"
+        },
+        "Action" : "kms:*",
+        "Resource" : "*"
+      }
+    ]
+  })
+}
+
+resource "aws_kms_alias" "msk" {
+  name          = "alias/${var.kms_alias}"
+  target_key_id = aws_kms_key.msk.id
+}
+# CloudWatch Log Group for MSK
+resource "aws_cloudwatch_log_group" "msk_broker_logs" {
+  name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
+  retention_in_days = 7
+  tags              = local.common_tags
+}
+
+# MSK Cluster
+resource "aws_msk_cluster" "msk_cluster" {
+  cluster_name           = "${var.project_name}-${var.cluster_name}-${var.environment}-msk"
+  kafka_version          = var.kafka_version
+  number_of_broker_nodes = var.number_of_broker_nodes
+
+
+
+  broker_node_group_info {
+    instance_type   = var.instance_type
+    client_subnets  = var.subnet_ids
+    security_groups = [aws_security_group.sg_msk.id]
+    storage_info {
+      ebs_storage_info {
+        volume_size = var.ebs_volume_size
+      }
+    }
+  }
+
+  open_monitoring {
+    prometheus {
+      jmx_exporter {
+        enabled_in_broker = var.jmx_exporter_monitoring_enabled
+      }
+      node_exporter {
+        enabled_in_broker = var.node_exporter_monitoring_enabled
+      }
+    }
+  }
+
+  storage_mode = var.storage_mode
+
+  client_authentication {
+    unauthenticated = true
+  }
+
+  encryption_info {
+    encryption_at_rest_kms_key_arn = aws_kms_key.msk.arn
+    encryption_in_transit {
+      client_broker = "TLS"
+      in_cluster    = true
+    }
+  }
+
+  logging_info {
+    broker_logs {
+      cloudwatch_logs {
+        enabled   = true
+        log_group = aws_cloudwatch_log_group.msk_broker_logs.name
+      }
+      s3 {
+        enabled = true
+        bucket  = aws_s3_bucket.msk_logs.id
+        prefix  = "logs/msk-"
+      }
+    }
+  }
+
+  tags = local.common_tags
+}
+
+## Logging s3 bucket
+
+resource "aws_s3_bucket" "msk_logs" {
+  bucket = "${var.project_name}-${var.cluster_name}-${var.environment}-logs"
+  tags   = local.common_tags
+}
+
+resource "aws_s3_bucket_public_access_block" "logs_access" {
+  bucket = aws_s3_bucket.msk_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "msk_logs_versioning" {
+  bucket = aws_s3_bucket.msk_logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "msk_logs" {
+  bucket = aws_s3_bucket.msk_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.msk.arn
+      sse_algorithm     = "aws:kms"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "msk_logs" {
+  bucket = aws_s3_bucket.msk_logs.id
+
+  rule {
+    id     = "cc-bucket-lifecycle-rule-msk-logs"
+    status = "Enabled"
+    filter {}
+    expiration {
+      days = var.lifecycle_expiration_days
+    }
+  }
+
+  rule {
+    id     = "cc-abort-incomplete-multipart-uploads-msk-logs"
+    status = "Enabled"
+
+    # No filter → applies to all multipart uploads
+    filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = var.days_after_initiation
+    }
+  }
+}
+
+locals {
+  common_tags = merge(
+    {
+      Environment = var.environment
+      Project     = var.project_name
+      ManagedBy   = "terraform"
+    },
+    var.tags
+  )
+}

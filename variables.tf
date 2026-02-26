@@ -1,0 +1,130 @@
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "eu-west-2"
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "The MSK cluster's VPC ID"
+}
+
+variable "cluster_name" {
+  description = "Name of the MSK Cluster"
+  type        = string
+  default     = ""
+}
+
+variable "instance_type" {
+  description = "MSK Cluster Instance Type"
+  type        = string
+  default     = "kafka.t3.small"
+}
+
+variable "project_name" {
+  description = "Name of the project"
+  type        = string
+  default     = ""
+}
+
+variable "kms_alias" {
+  description = "KMS key alias for bucket encryption"
+  type        = string
+  nullable    = false
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR Range"
+}
+
+variable "tags" {
+  description = "Tags to be applied to the bucket"
+  type        = map(string)
+  default     = {}
+
+  validation {
+    condition = alltrue([
+      contains(keys(var.tags), "account-code"),
+      contains(keys(var.tags), "cost-centre"),
+      contains(keys(var.tags), "portfolio-id"),
+      contains(keys(var.tags), "project-id"),
+      contains(keys(var.tags), "service-id"),
+      contains(keys(var.tags), "environment-type"),
+      contains(keys(var.tags), "owner-business"),
+      contains(keys(var.tags), "budget-holder"),
+      contains(keys(var.tags), "source-repo")
+    ])
+    error_message = "Tags must include all mandatory fields."
+  }
+}
+
+variable "encryption_type" {
+  description = "The server-side encryption algorithm to use. Valid values are 'aws:kms' or 'AES256'. AES256 is for SSE-S3"
+  type        = string
+  default     = "aws:kms"
+
+  validation {
+    condition     = contains(["aws:kms", "AES256"], var.encryption_type)
+    error_message = "The encryption_type must be either 'aws:kms' or 'AES256'."
+  }
+}
+
+variable "account_id" {
+  description = "The AWS Account ID."
+  type        = string
+}
+
+variable "kafka_version" {
+  type    = string
+  default = "3.8.0"
+}
+
+variable "number_of_broker_nodes" {
+  type    = number
+  default = 3
+}
+
+variable "ebs_volume_size" {
+  description = "MSK EBS Volume Size"
+  type        = number
+  default     = 1000
+}
+
+variable "subnet_ids" {
+  description = "A list of subnets that the MSK cluster should run in"
+  type        = list(string)
+}
+
+variable "jmx_exporter_monitoring_enabled" {
+  description = "Whether to enable JMX Exporter Open Monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "node_exporter_monitoring_enabled" {
+  description = "Whether to enable Node Exporter Open Monitoring"
+  type        = bool
+  default     = false
+}
+
+variable "storage_mode" {
+  description = "Specify the storage mode for MSK brokers. Valid values: LOCAL (default) or TIERED."
+  type        = string
+  default     = "LOCAL"
+}
+
+variable "lifecycle_expiration_days" {
+  description = "Number of days to keep s3 objects before expiration"
+  type        = number
+  default     = 30
+}
+
+variable "days_after_initiation" {
+  description = "Specifies the number of days after initiating a multipart upload when the multipart upload must be completed."
+  default     = 15
+  type        = number
+}
