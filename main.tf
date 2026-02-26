@@ -1,11 +1,8 @@
-resource "aws_vpc" "vpc" {
-  cidr_block = var.vpc_cidr
-}
-
 resource "aws_security_group" "sg_msk" {
   name        = "${var.project_name}-${var.cluster_name}-${var.environment}-msk-sg"
   description = "Security group for ${var.project_name}-${var.cluster_name}-${var.environment}-msk"
   vpc_id      = var.vpc_id
+  tags        = local.common_tags
 
   #Kafka Broker TLS port
   ingress {
@@ -70,7 +67,8 @@ resource "aws_kms_alias" "msk" {
 # CloudWatch Log Group for MSK
 resource "aws_cloudwatch_log_group" "msk_broker_logs" {
   name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
-  retention_in_days = 7
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.msk.id
   tags              = local.common_tags
 }
 

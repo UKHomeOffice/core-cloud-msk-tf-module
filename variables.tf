@@ -1,9 +1,3 @@
-variable "region" {
-  description = "AWS region"
-  type        = string
-  default     = "eu-west-2"
-}
-
 variable "environment" {
   description = "Environment name"
   type        = string
@@ -11,6 +5,7 @@ variable "environment" {
 
 variable "vpc_id" {
   description = "The MSK cluster's VPC ID"
+  type        = string
 }
 
 variable "cluster_name" {
@@ -59,17 +54,6 @@ variable "tags" {
       contains(keys(var.tags), "source-repo")
     ])
     error_message = "Tags must include all mandatory fields."
-  }
-}
-
-variable "encryption_type" {
-  description = "The server-side encryption algorithm to use. Valid values are 'aws:kms' or 'AES256'. AES256 is for SSE-S3"
-  type        = string
-  default     = "aws:kms"
-
-  validation {
-    condition     = contains(["aws:kms", "AES256"], var.encryption_type)
-    error_message = "The encryption_type must be either 'aws:kms' or 'AES256'."
   }
 }
 
