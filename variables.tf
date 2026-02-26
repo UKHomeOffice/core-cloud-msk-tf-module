@@ -34,7 +34,7 @@ variable "kms_alias" {
 
 variable "vpc_cidr" {
   description = "VPC CIDR Range"
-  type        = string
+  type        = list(string)
 }
 
 variable "tags" {
