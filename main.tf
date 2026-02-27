@@ -197,6 +197,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "msk_logs" {
 
 resource "aws_appautoscaling_target" "msk_appautoscaling_target" {
   count = var.storage_autoscaling_max_capacity > var.ebs_volume_size ? 1 : 0
+  tags  = local.common_tags
 
   max_capacity       = var.storage_autoscaling_max_capacity
   min_capacity       = 1
