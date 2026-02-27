@@ -193,6 +193,38 @@ resource "aws_s3_bucket_lifecycle_configuration" "msk_logs" {
   }
 }
 
+## MSK Scaling
+
+resource "aws_appautoscaling_target" "msk_appautoscaling_target" {
+  count = var.storage_autoscaling_max_capacity > var.ebs_volume_size ? 1 : 0
+
+  max_capacity       = var.storage_autoscaling_max_capacity
+  min_capacity       = 1
+  resource_id        = aws_msk_cluster.msk_cluster.arn
+  scalable_dimension = "kafka:broker-storage:VolumeSize"
+  service_namespace  = "kafka"
+}
+
+resource "aws_appautoscaling_policy" "msk_appautoscaling_policy" {
+  count = var.storage_autoscaling_max_capacity > var.ebs_volume_size ? 1 : 0
+
+  name               = "${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_msk_cluster.msk_cluster.arn
+  scalable_dimension = join("", aws_appautoscaling_target.msk_appautoscaling_target.*.scalable_dimension)
+  service_namespace  = join("", aws_appautoscaling_target.msk_appautoscaling_target.*.service_namespace)
+
+  target_tracking_scaling_policy_configuration {
+    # Can't scale down an msk cluster disk after increasing it.
+    disable_scale_in = "true"
+    predefined_metric_specification {
+      predefined_metric_type = "KafkaBrokerStorageUtilization"
+    }
+
+    target_value = var.storage_autoscaling_threshold
+  }
+}
+
 locals {
   common_tags = merge(
     {
