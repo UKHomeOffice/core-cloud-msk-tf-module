@@ -211,8 +211,8 @@ resource "aws_appautoscaling_policy" "msk_appautoscaling_policy" {
   name               = "${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_msk_cluster.msk_cluster.arn
-  scalable_dimension = join("", aws_appautoscaling_target.msk_appautoscaling_target.*.scalable_dimension)
-  service_namespace  = join("", aws_appautoscaling_target.msk_appautoscaling_target.*.service_namespace)
+  scalable_dimension = [join("", aws_appautoscaling_target.msk_appautoscaling_target.*.scalable_dimension)]
+  service_namespace  = [join("", aws_appautoscaling_target.msk_appautoscaling_target.*.service_namespace)]
 
   target_tracking_scaling_policy_configuration {
     # Can't scale down an msk cluster disk after increasing it.
