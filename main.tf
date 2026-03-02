@@ -104,12 +104,18 @@ resource "aws_msk_cluster" "msk_cluster" {
 
   storage_mode = var.storage_mode
 
-  client_authentication {
-    dynamic "tls" {
-      for_each = var.iam_authentication ? [] : [1]
-      content {
-        certificate_authority_arns = length(var.ca_arn) != 0 ? var.ca_arn : [aws_acmpca_certificate_authority.msk_kafka_with_ca[count.index].arn]
+  dynamic "client_authentication" {
+    for_each = var.client_authentication != null ? [var.client_authentication] : []
+
+    content {
+      dynamic "tls" {
+        for_each = client_authentication.value.tls != null ? [client_authentication.value.tls] : []
+
+        content {
+          certificate_authority_arns = tls.value.certificate_authority_arns
+        }
       }
+      unauthenticated = client_authentication.value.unauthenticated
     }
   }
 

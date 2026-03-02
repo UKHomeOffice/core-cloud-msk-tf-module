@@ -152,14 +152,19 @@ variable "ca_type" {
   default     = "SUBORDINATE"
 }
 
-variable "iam_authentication" {
-  description = "Enables IAM client authentication"
-  type        = bool
-  default     = false
-}
-
 variable "ca_arn" {
   description = "ARN of the AWS managed CA to attach to the MSK cluster"
   default     = []
   type        = list(string)
+}
+
+variable "client_authentication" {
+  description = "Configuration block for specifying TLS client authentication"
+  type = object({
+    tls = optional(object({
+      certificate_authority_arns = optional(list(string))
+    }))
+    unauthenticated = optional(bool)
+  })
+  default = null
 }
