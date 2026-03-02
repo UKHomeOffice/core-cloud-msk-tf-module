@@ -9,7 +9,7 @@ on:
         required: true
   push:
     branches:
-      - main
+      - CCL-7485
   pull_request:
 
 permissions:
