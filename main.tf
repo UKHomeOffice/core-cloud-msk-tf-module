@@ -353,7 +353,7 @@ resource "aws_iam_policy_attachment" "msk_iam_authentication_policy" {
   count      = var.certificate_authority == null ? 1 : 0
   name       = "${var.cluster_name}-authentication-policy-attachment"
   users      = [aws_iam_user.msk_iam_user.name]
-  policy_arn = aws_iam_policy.msk_iam_authentication[0].arn
+  policy_arn = aws_iam_policy.msk_iam_authentication.arn
 }
 
 
