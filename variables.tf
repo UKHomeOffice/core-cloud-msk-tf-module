@@ -143,7 +143,7 @@ variable "storage_autoscaling_threshold" {
 variable "certificate_authority" {
   description = "True if PCA should be created on cluster creation and there is not an existing CA to use"
   type        = bool
-  default     = false
+  default     = null
 }
 
 variable "ca_type" {
