@@ -140,12 +140,6 @@ variable "storage_autoscaling_threshold" {
   }
 }
 
-variable "certificate_authority_arn" {
-  description = "Provide Certificate Authority Arn for MSK if exists"
-  type        = string
-  default     = ""
-}
-
 variable "certificate_authority" {
   description = "True if PCA should be created on cluster creation and there is not an existing CA to use"
   type        = bool
@@ -154,6 +148,7 @@ variable "certificate_authority" {
 
 variable "ca_type" {
   description = "The type of the certificate authority"
+  type        = string
   default     = "SUBORDINATE"
 }
 
