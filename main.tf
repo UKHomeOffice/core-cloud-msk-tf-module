@@ -325,7 +325,21 @@ resource "aws_iam_policy" "msk_iam_authentication" {
   tags        = local.common_tags
   name        = "${var.cluster_name}-iam-auth-policy"
   description = "This policy allow IAM authenticated user to connect to MSK"
-  policy      = aws_iam_policy.acmpca_policy_with_msk_policy[count.index].policy
+  policy      = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "IAMPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "kafka-cluster:*"
+      ],
+      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
+    }
+  ]
+}
+EOF
 }
 
 
