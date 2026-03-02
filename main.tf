@@ -260,9 +260,9 @@ resource "aws_iam_user" "msk_acmpca_iam_user" {
 
 #policy attachment for CA policy
 resource "aws_iam_policy" "acmpca_policy_with_msk_policy" {
-  count = var.certificate_authority == "true" ? 1 : 0
-  name  = "${var.cluster_name}-acmpcaPolicy"
-
+  count  = var.certificate_authority == "true" ? 1 : 0
+  name   = "${var.cluster_name}-acmpcaPolicy"
+  tags   = local.common_tags
   policy = <<EOF
 {
   "Version": "2012-10-17",
