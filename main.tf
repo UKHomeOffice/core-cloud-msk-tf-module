@@ -105,7 +105,12 @@ resource "aws_msk_cluster" "msk_cluster" {
   storage_mode = var.storage_mode
 
   client_authentication {
-    unauthenticated = true
+    dynamic "tls" {
+      for_each = var.iam_authentication ? [] : [1]
+      content {
+        certificate_authority_arns = length(var.ca_arn) != 0 ? var.ca_arn : [aws_acmpca_certificate_authority.msk_kafka_with_ca[count.index].arn]
+      }
+    }
   }
 
   encryption_info {
@@ -225,6 +230,110 @@ resource "aws_appautoscaling_policy" "msk_appautoscaling_policy" {
     target_value = var.storage_autoscaling_threshold
   }
 }
+
+## Certificate Authority
+resource "aws_acmpca_certificate_authority" "msk_with_ca" {
+
+  count = var.certificate_authority == "true" ? 1 : 0
+  tags  = local.common_tags
+
+  certificate_authority_configuration {
+    key_algorithm     = "RSA_4096"
+    signing_algorithm = "SHA512WITHRSA"
+
+    subject {
+      common_name = "${var.cluster_name}-ca"
+    }
+  }
+
+  type                            = var.ca_type
+  permanent_deletion_time_in_days = 7
+
+}
+
+resource "aws_iam_user" "msk_acmpca_iam_user" {
+  count = var.certificate_authority == "true" ? 1 : 0
+  name  = "${var.cluster_name}-acmpca-user"
+  path  = "/"
+  tags  = local.common_tags
+}
+
+#policy attachment for CA policy
+resource "aws_iam_policy" "acmpca_policy_with_msk_policy" {
+  count = var.certificate_authority == "true" ? 1 : 0
+  name  = "${var.cluster_name}-acmpcaPolicy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "IAMacmpcaPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "acm-pca:IssueCertificate",
+        "acm-pca:GetCertificate"
+      ],
+      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_policy_attachment" "msk_acmpca_iam_policy_attachment" {
+  count      = var.certificate_authority == "true" ? 1 : 0
+  name       = "${var.cluster_name}-acmpca-policy-attachment"
+  users      = [aws_iam_user.msk_acmpca_iam_user[count.index].name]
+  policy_arn = aws_iam_policy.acmpca_policy_with_msk_policy[count.index].arn
+}
+
+resource "aws_iam_user" "msk_iam_user" {
+  name = "${var.cluster_name}-user"
+  path = "/"
+  tags = local.common_tags
+}
+
+resource "aws_iam_policy" "msk_iam_policy" {
+  name = "${var.cluster_name}-policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "IAMPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:ListMetrics",
+        "cloudwatch:GetMetricStatistics"
+      ],
+      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_policy_attachment" "msk_iam_policy_attachment" {
+  name       = "${var.cluster_name}-policy-attachment"
+  users      = [aws_iam_user.msk_iam_user.name]
+  policy_arn = aws_iam_policy.msk_iam_policy.arn
+}
+
+resource "aws_iam_policy" "msk_iam_authentication" {
+  name        = "${var.cluster_name}-iam-auth-policy"
+  description = "This policy allow IAM authenticated user to connect to MSK"
+  policy      = data.aws_iam_policy_document.msk_iam_authentication_document.json
+}
+
+
+resource "aws_iam_policy_attachment" "msk_iam_authentication_policy" {
+  name       = "${var.cluster_name}-authentication-policy-attachment"
+  users      = [aws_iam_user.msk_iam_user.name]
+  policy_arn = aws_iam_policy.msk_iam_authentication[count.index].arn
+}
+
 
 locals {
   common_tags = merge(

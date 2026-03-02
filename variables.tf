@@ -139,3 +139,32 @@ variable "storage_autoscaling_threshold" {
     error_message = "Storage autoscaling threshold must be between 10 and 80."
   }
 }
+
+variable "certificate_authority_arn" {
+  description = "Provide Certificate Authority Arn for MSK if exists"
+  type        = string
+  default     = ""
+}
+
+variable "certificate_authority" {
+  description = "True if PCA should be created on cluster creation and there is not an existing CA to use"
+  type        = bool
+  default     = false
+}
+
+variable "ca_type" {
+  description = "The type of the certificate authority"
+  default     = "SUBORDINATE"
+}
+
+variable "iam_authentication" {
+  description = "Enables IAM client authentication"
+  type        = bool
+  default     = false
+}
+
+variable "ca_arn" {
+  description = "ARN of the AWS managed CA to attach to the MSK cluster"
+  default     = []
+  type        = list(string)
+}
