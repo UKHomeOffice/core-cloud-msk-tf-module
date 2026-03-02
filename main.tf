@@ -295,8 +295,8 @@ resource "aws_iam_user" "msk_iam_user" {
 }
 
 resource "aws_iam_policy" "msk_iam_policy" {
-  name = "${var.cluster_name}-policy"
-
+  name   = "${var.cluster_name}-policy"
+  tags   = local.common_tags
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -322,9 +322,10 @@ resource "aws_iam_policy_attachment" "msk_iam_policy_attachment" {
 }
 
 resource "aws_iam_policy" "msk_iam_authentication" {
+  tags        = local.common_tags
   name        = "${var.cluster_name}-iam-auth-policy"
   description = "This policy allow IAM authenticated user to connect to MSK"
-  policy      = data.aws_iam_policy_document.msk_iam_authentication_document.json
+  policy      = aws_iam_policy.acmpca_policy_with_msk_policy.policy
 }
 
 
