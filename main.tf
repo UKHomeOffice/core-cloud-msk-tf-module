@@ -68,7 +68,7 @@ resource "aws_kms_alias" "msk" {
 resource "aws_cloudwatch_log_group" "msk_broker_logs" {
   name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
   retention_in_days = 365
-  kms_key_id        = aws_kms_key.msk.id
+  kms_key_id        = aws_kms_key.msk.arn
   tags              = local.common_tags
 }
 
