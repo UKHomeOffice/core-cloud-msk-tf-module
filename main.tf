@@ -231,6 +231,13 @@ resource "aws_appautoscaling_policy" "msk_appautoscaling_policy" {
 }
 
 ## Certificate Authority
+
+resource "aws_iam_role" "msk_role" {
+  name               = "${var.cluster_name}-role"
+  assume_role_policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
+  tags               = local.common_tags
+}
+
 resource "aws_acmpca_certificate_authority" "msk_with_ca" {
   count = var.certificate_authority == true ? 1 : 0
   tags  = local.common_tags
@@ -249,105 +256,61 @@ resource "aws_acmpca_certificate_authority" "msk_with_ca" {
 
 }
 
-resource "aws_iam_user" "msk_acmpca_iam_user" {
-  count = var.certificate_authority == true ? 1 : 0
-  name  = "${var.cluster_name}-acmpca-user"
-  path  = "/"
-  tags  = local.common_tags
+data "aws_iam_policy_document" "msk_ca_policy" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "acm-pca:IssueCertificate",
+      "acm-pca:GetCertificate",
+    ]
+    resources = [aws_msk_cluster.msk_cluster.arn]
+  }
 }
 
-#policy attachment for CA policy
-resource "aws_iam_policy" "acmpca_policy_with_msk_policy" {
-  count  = var.certificate_authority == true ? 1 : 0
-  name   = "${var.cluster_name}-acmpcaPolicy"
+resource "aws_iam_policy" "msk_iam_ca_policy" {
+  name   = "${var.cluster_name}-acmpca-policy"
+  policy = data.aws_iam_policy_document.msk_ca_policy.json
   tags   = local.common_tags
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "IAMacmpcaPermissions",
-      "Effect": "Allow",
-      "Action": [
-        "acm-pca:IssueCertificate",
-        "acm-pca:GetCertificate"
-      ],
-      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
-    }
-  ]
-}
-EOF
 }
 
-resource "aws_iam_policy_attachment" "msk_acmpca_iam_policy_attachment" {
+resource "aws_iam_policy_attachment" "msk_ca_policy_attachment" {
   count      = var.certificate_authority == true ? 1 : 0
   name       = "${var.cluster_name}-acmpca-policy-attachment"
-  users      = [aws_iam_user.msk_acmpca_iam_user[count.index].name]
-  policy_arn = aws_iam_policy.acmpca_policy_with_msk_policy[count.index].arn
+  policy_arn = aws_iam_policy.msk_iam_ca_policy.arn
 }
 
-resource "aws_iam_user" "msk_iam_user" {
-  name = "${var.cluster_name}-user"
-  path = "/"
-  tags = local.common_tags
+data "aws_iam_policy_document" "msk_cloudwatch_policy" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "cloudwatch:ListMetrics",
+      "cloudwatch:GetMetricStatistics",
+    ]
+    resources = [aws_msk_cluster.msk_cluster.arn]
+  }
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "kafka-cluster:*",
+    ]
+
+    resources = ["${aws_msk_cluster.msk_cluster.arn}/*"]
+  }
 }
 
-resource "aws_iam_policy" "msk_iam_policy" {
-  name   = "${var.cluster_name}-policy"
+resource "aws_iam_policy" "msk_iam_cloudwatch_policy" {
+  name   = "${var.cluster_name}-cloudwatch-policy"
+  policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
   tags   = local.common_tags
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "IAMPermissions",
-      "Effect": "Allow",
-      "Action": [
-        "cloudwatch:ListMetrics",
-        "cloudwatch:GetMetricStatistics"
-      ],
-      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
-    }
-  ]
-}
-EOF
 }
 
-resource "aws_iam_policy_attachment" "msk_iam_policy_attachment" {
-  name       = "${var.cluster_name}-policy-attachment"
-  users      = [aws_iam_user.msk_iam_user.name]
-  policy_arn = aws_iam_policy.msk_iam_policy.arn
+resource "aws_iam_role_policy_attachment" "msk_cloudwatch_policy_attachment" {
+  role       = aws_iam_role.msk_role.name
+  policy_arn = aws_iam_policy.msk_iam_cloudwatch_policy.arn
 }
-
-resource "aws_iam_policy" "msk_iam_authentication" {
-  tags        = local.common_tags
-  name        = "${var.cluster_name}-iam-auth-policy"
-  description = "This policy allow IAM authenticated user to connect to MSK"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "IAMPermissions",
-      "Effect": "Allow",
-      "Action": [
-        "kafka-cluster:*"
-      ],
-      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
-    }
-  ]
-}
-EOF
-}
-
-
-resource "aws_iam_policy_attachment" "msk_iam_authentication_policy" {
-  count      = var.certificate_authority == true ? 1 : 0
-  name       = "${var.cluster_name}-authentication-policy-attachment"
-  users      = [aws_iam_user.msk_iam_user.name]
-  policy_arn = aws_iam_policy.msk_iam_authentication.arn
-}
-
 
 locals {
   common_tags = merge(
