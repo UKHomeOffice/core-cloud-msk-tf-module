@@ -232,8 +232,7 @@ resource "aws_appautoscaling_policy" "msk_appautoscaling_policy" {
 
 ## Certificate Authority
 resource "aws_acmpca_certificate_authority" "msk_with_ca" {
-
-  count = var.certificate_authority == null ? 1 : 0
+  count = var.certificate_authority == true ? 1 : 0
   tags  = local.common_tags
 
   certificate_authority_configuration {
@@ -251,7 +250,7 @@ resource "aws_acmpca_certificate_authority" "msk_with_ca" {
 }
 
 resource "aws_iam_user" "msk_acmpca_iam_user" {
-  count = var.certificate_authority == null ? 1 : 0
+  count = var.certificate_authority == true ? 1 : 0
   name  = "${var.cluster_name}-acmpca-user"
   path  = "/"
   tags  = local.common_tags
@@ -259,7 +258,7 @@ resource "aws_iam_user" "msk_acmpca_iam_user" {
 
 #policy attachment for CA policy
 resource "aws_iam_policy" "acmpca_policy_with_msk_policy" {
-  count  = var.certificate_authority == null ? 1 : 0
+  count  = var.certificate_authority == true ? 1 : 0
   name   = "${var.cluster_name}-acmpcaPolicy"
   tags   = local.common_tags
   policy = <<EOF
@@ -281,7 +280,7 @@ EOF
 }
 
 resource "aws_iam_policy_attachment" "msk_acmpca_iam_policy_attachment" {
-  count      = var.certificate_authority == null ? 1 : 0
+  count      = var.certificate_authority == true ? 1 : 0
   name       = "${var.cluster_name}-acmpca-policy-attachment"
   users      = [aws_iam_user.msk_acmpca_iam_user[count.index].name]
   policy_arn = aws_iam_policy.acmpca_policy_with_msk_policy[count.index].arn
@@ -343,7 +342,7 @@ EOF
 
 
 resource "aws_iam_policy_attachment" "msk_iam_authentication_policy" {
-  count      = var.certificate_authority == null ? 1 : 0
+  count      = var.certificate_authority == true ? 1 : 0
   name       = "${var.cluster_name}-authentication-policy-attachment"
   users      = [aws_iam_user.msk_iam_user.name]
   policy_arn = aws_iam_policy.msk_iam_authentication.arn
