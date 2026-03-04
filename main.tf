@@ -274,9 +274,9 @@ resource "aws_iam_policy" "msk_iam_ca_policy" {
   tags   = local.common_tags
 }
 
-resource "aws_iam_policy_attachment" "msk_ca_policy_attachment" {
+resource "aws_iam_role_policy_attachment" "msk_ca_policy_attachment" {
   count      = var.certificate_authority == true ? 1 : 0
-  name       = "${var.cluster_name}-acmpca-policy-attachment"
+  role       = aws_iam_role.msk_role.name
   policy_arn = aws_iam_policy.msk_iam_ca_policy.arn
 }
 
