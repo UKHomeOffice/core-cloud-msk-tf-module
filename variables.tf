@@ -158,13 +158,8 @@ variable "ca_arn" {
   type        = list(string)
 }
 
-variable "client_authentication" {
-  description = "Configuration block for specifying TLS client authentication"
-  type = object({
-    tls = optional(object({
-      certificate_authority_arns = optional(list(string))
-    }))
-    unauthenticated = optional(bool)
-  })
-  default = null
+variable "iam_authentication" {
+  description = "Enables IAM client authentication"
+  type        = bool
+  default     = false
 }

@@ -78,8 +78,6 @@ resource "aws_msk_cluster" "msk_cluster" {
   kafka_version          = var.kafka_version
   number_of_broker_nodes = var.number_of_broker_nodes
 
-
-
   broker_node_group_info {
     instance_type   = var.instance_type
     client_subnets  = var.subnet_ids
@@ -104,20 +102,15 @@ resource "aws_msk_cluster" "msk_cluster" {
 
   storage_mode = var.storage_mode
 
-  dynamic "client_authentication" {
-    for_each = var.client_authentication != null ? [var.client_authentication] : []
-
-    content {
-      dynamic "tls" {
-        for_each = client_authentication.value.tls != null ? [client_authentication.value.tls] : []
-
-        content {
-          certificate_authority_arns = tls.value.certificate_authority_arns
-        }
+  client_authentication {
+    dynamic "tls" {
+      for_each = var.iam_authentication ? [] : [1]
+      content {
+        certificate_authority_arns = var.ca_arn
       }
-      unauthenticated = client_authentication.value.unauthenticated
     }
   }
+
 
   encryption_info {
     encryption_at_rest_kms_key_arn = aws_kms_key.msk.arn
