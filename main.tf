@@ -55,6 +55,26 @@ resource "aws_kms_key_policy" "msk_kms_policy" {
         },
         "Action" : "kms:*",
         "Resource" : "*"
+      },
+      {
+        Sid    = "Allow Service CloudWatchLogGroup"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.region}.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:Describe",
+          "kms:GenerateDataKey*"
+        ]
+        Resource = "*",
+        Condition = {
+          ArnEquals = {
+            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
+          }
+        }
       }
     ]
   })

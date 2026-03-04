@@ -3,6 +3,12 @@ variable "environment" {
   type        = string
 }
 
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "eu-west-2"
+}
+
 variable "vpc_id" {
   description = "The MSK cluster's VPC ID"
   type        = string
