@@ -170,8 +170,8 @@ variable "tls_authentication" {
   default     = false
 }
 
-variable "client_authentication" {
-  description = "Enables client authentication. Should be false if TLS Authentication enabled."
+variable "client_unauthenticated" {
+  description = "True if no client authentication. Should be false if TLS authentication enabled."
   type        = bool
   default     = true
 }

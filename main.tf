@@ -124,7 +124,7 @@ resource "aws_msk_cluster" "msk_cluster" {
         certificate_authority_arns = var.ca_arn
       }
     }
-    unauthenticated = var.client_authentication
+    unauthenticated = var.client_unauthenticated
   }
 
 
