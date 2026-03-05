@@ -124,11 +124,12 @@ resource "aws_msk_cluster" "msk_cluster" {
 
   client_authentication {
     dynamic "tls" {
-      for_each = var.iam_authentication ? [] : [1]
+      for_each = var.tls_authentication ? [] : [1]
       content {
         certificate_authority_arns = var.ca_arn
       }
     }
+    unauthenticated = var.client_authentication
   }
 
 

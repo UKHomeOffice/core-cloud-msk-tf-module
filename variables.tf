@@ -164,8 +164,14 @@ variable "ca_arn" {
   type        = list(string)
 }
 
-variable "iam_authentication" {
-  description = "Enables IAM client authentication"
+variable "tls_authentication" {
+  description = "Enables TLS client authentication"
   type        = bool
   default     = false
+}
+
+variable "client_authentication" {
+  description = "Enables client authentication"
+  type        = bool
+  default     = true
 }
