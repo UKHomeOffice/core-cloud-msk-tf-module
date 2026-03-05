@@ -67,6 +67,7 @@ resource "aws_kms_key_policy" "msk_kms_policy" {
           "kms:Decrypt",
           "kms:ReEncrypt*",
           "kms:Describe",
+          "kms:CreateGrant",
           "kms:GenerateDataKey*"
         ]
         Resource = "*",
