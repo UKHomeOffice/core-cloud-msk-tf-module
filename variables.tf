@@ -171,7 +171,7 @@ variable "tls_authentication" {
 }
 
 variable "client_authentication" {
-  description = "Enables client authentication"
+  description = "Enables client authentication. Should be false if TLS Authentication enabled."
   type        = bool
   default     = true
 }
