@@ -79,6 +79,38 @@ resource "aws_kms_alias" "msk" {
   name          = "alias/${var.kms_alias}"
   target_key_id = aws_kms_key.msk.id
 }
+
+resource "aws_iam_role" "msk_role" {
+  name               = "${var.cluster_name}-role"
+  assume_role_policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
+  tags               = local.common_tags
+}
+
+data "aws_iam_policy_document" "msk_cloudwatch_policy" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "logs:DescribeLogGroups",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogStreams"
+    ]
+    resources = ["${aws_cloudwatch_log_group.msk_broker_logs.arn}/*"]
+  }
+}
+
+resource "aws_iam_policy" "msk_iam_cloudwatch_policy" {
+  name   = "${var.cluster_name}-cloudwatch-policy"
+  policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
+  tags   = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "msk_cloudwatch_policy_attachment" {
+  role       = aws_iam_role.msk_role.name
+  policy_arn = aws_iam_policy.msk_iam_cloudwatch_policy.arn
+}
+
 # CloudWatch Log Group for MSK
 resource "aws_cloudwatch_log_group" "msk_broker_logs" {
   name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
@@ -183,12 +215,6 @@ resource "aws_appautoscaling_policy" "msk_appautoscaling_policy" {
 
 ## Certificate Authority
 
-resource "aws_iam_role" "msk_role" {
-  name               = "${var.cluster_name}-role"
-  assume_role_policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
-  tags               = local.common_tags
-}
-
 resource "aws_acmpca_certificate_authority" "msk_with_ca" {
   count = var.certificate_authority == true ? 1 : 0
   tags  = local.common_tags
@@ -229,40 +255,6 @@ resource "aws_iam_role_policy_attachment" "msk_ca_policy_attachment" {
   count      = var.certificate_authority == true ? 1 : 0
   role       = aws_iam_role.msk_role.name
   policy_arn = aws_iam_policy.msk_iam_ca_policy.arn
-}
-
-data "aws_iam_policy_document" "msk_cloudwatch_policy" {
-  statement {
-    effect = "Allow"
-
-    actions = [
-      "cloudwatch:ListMetrics",
-      "cloudwatch:GetMetricStatistics",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-    ]
-    resources = [aws_msk_cluster.msk_cluster.arn]
-  }
-  statement {
-    effect = "Allow"
-
-    actions = [
-      "kafka-cluster:*",
-    ]
-
-    resources = ["${aws_msk_cluster.msk_cluster.arn}/*"]
-  }
-}
-
-resource "aws_iam_policy" "msk_iam_cloudwatch_policy" {
-  name   = "${var.cluster_name}-cloudwatch-policy"
-  policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
-  tags   = local.common_tags
-}
-
-resource "aws_iam_role_policy_attachment" "msk_cloudwatch_policy_attachment" {
-  role       = aws_iam_role.msk_role.name
-  policy_arn = aws_iam_policy.msk_iam_cloudwatch_policy.arn
 }
 
 locals {
