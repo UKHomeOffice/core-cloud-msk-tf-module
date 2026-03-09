@@ -142,75 +142,10 @@ resource "aws_msk_cluster" "msk_cluster" {
         enabled   = true
         log_group = aws_cloudwatch_log_group.msk_broker_logs.name
       }
-      s3 {
-        enabled = true
-        bucket  = aws_s3_bucket.msk_logs.id
-        prefix  = "logs/msk-"
-      }
     }
   }
 
   tags = local.common_tags
-}
-
-## Logging s3 bucket
-
-resource "aws_s3_bucket" "msk_logs" {
-  bucket = "${var.project_name}-${var.cluster_name}-${var.environment}-logs"
-  tags   = local.common_tags
-}
-
-resource "aws_s3_bucket_public_access_block" "logs_access" {
-  bucket = aws_s3_bucket.msk_logs.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_versioning" "msk_logs_versioning" {
-  bucket = aws_s3_bucket.msk_logs.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "msk_logs" {
-  bucket = aws_s3_bucket.msk_logs.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.msk.arn
-      sse_algorithm     = "aws:kms"
-    }
-    bucket_key_enabled = true
-  }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "msk_logs" {
-  bucket = aws_s3_bucket.msk_logs.id
-
-  rule {
-    id     = "cc-bucket-lifecycle-rule-msk-logs"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = var.lifecycle_expiration_days
-    }
-  }
-
-  rule {
-    id     = "cc-abort-incomplete-multipart-uploads-msk-logs"
-    status = "Enabled"
-
-    # No filter → applies to all multipart uploads
-    filter {}
-
-    abort_incomplete_multipart_upload {
-      days_after_initiation = var.days_after_initiation
-    }
-  }
 }
 
 ## MSK Scaling
@@ -303,6 +238,8 @@ data "aws_iam_policy_document" "msk_cloudwatch_policy" {
     actions = [
       "cloudwatch:ListMetrics",
       "cloudwatch:GetMetricStatistics",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
     ]
     resources = [aws_msk_cluster.msk_cluster.arn]
   }
