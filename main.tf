@@ -122,6 +122,34 @@ resource "aws_iam_role_policy_attachment" "attach_cloudwatch_logs" {
   policy_arn = aws_iam_policy.msk_cloudwatch_logs_write.arn
 }
 
+resource "aws_iam_policy" "msk_permissions" {
+  name        = "${var.cluster_name}-permissions"
+  description = "Allow Kafka and KMS permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey",
+          "kms:CreateGrant",
+          "kafka-cluster:*",
+          "kafka:*"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_msk_permissions" {
+  role       = aws_iam_role.msk_role.name
+  policy_arn = aws_iam_policy.msk_permissions.arn
+}
+
 # CloudWatch Log Group for MSK
 resource "aws_cloudwatch_log_group" "msk_broker_logs" {
   name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
