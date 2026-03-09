@@ -86,9 +86,10 @@ resource "aws_kms_key_policy" "msk_kms_policy" {
         Action = [
           "kms:Decrypt",
           "kms:DescribeKey",
-          "kms:GenerateDataKey"
+          "kms:GenerateDataKey",
+          "kms:CreateGrant"
         ],
-        Resource = "*"
+        Resource = ["arn:aws:kms:${var.region}:${var.account_id}:key/*}"]
       }
     ]
   })
@@ -158,8 +159,34 @@ resource "aws_iam_policy" "msk_permissions" {
           "kafka-cluster:*",
           "kafka:*"
         ],
-        Resource = "arn:aws:kafka:${var.region}:${var.account_id}:cluster/*"
-      }
+        Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:cluster/*", "arn:aws:kafka:${var.region}:${var.account_id}:topic/*"]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "kafka-cluster:Connect",
+          "kafka-cluster:AlterCluster",
+          "kafka-cluster:DescribeCluster"
+        ],
+        Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:cluster/*"]
+        },
+        {
+          Effect = "Allow",
+          Action = [
+            "kafka-cluster:*Topic*",
+            "kafka-cluster:WriteData",
+            "kafka-cluster:ReadData"
+            ],
+            Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:topic/*"]
+        },
+        {
+          Effect = "Allow",
+          Action = [
+            "kafka-cluster:AlterGroup",
+            "kafka-cluster:DescribeGroup"
+            ],
+            "Resource": ["arn:aws:kafka:${var.region}:${var.account_id}:group/*"]
+        }
     ]
   })
 }
