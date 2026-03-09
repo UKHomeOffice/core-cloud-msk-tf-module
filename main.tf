@@ -139,7 +139,7 @@ resource "aws_iam_policy" "msk_permissions" {
           "kafka-cluster:*",
           "kafka:*"
         ],
-        Resource = "*"
+        Resource = "arn:aws:kafka:${var.region}:${var.account_id}:cluster/*"
       }
     ]
   })
