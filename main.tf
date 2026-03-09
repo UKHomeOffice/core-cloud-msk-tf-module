@@ -96,7 +96,7 @@ data "aws_iam_policy_document" "msk_cloudwatch_policy" {
       "logs:PutLogEvents",
       "logs:DescribeLogStreams"
     ]
-    resources = ["${aws_cloudwatch_log_group.msk_broker_logs.arn}/*"]
+    resources = ["${aws_cloudwatch_log_group.msk_broker_logs.arn}/*", "arn:aws:logs:${var.region}:${var.account_id}:log-group:*"]
   }
 }
 
