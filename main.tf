@@ -66,9 +66,28 @@ resource "aws_kms_key_policy" "msk_kms_policy" {
           "kms:Encrypt",
           "kms:Decrypt",
           "kms:ReEncrypt*",
-          "kms:Describe",
-          "kms:GenerateDataKey*"
+          "kms:GenerateDataKey*",
+          "kms:CreateGrant",
+          "kms:DescribeKey"
         ]
+        Resource = "*",
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${var.region}:${var.account_id}:log-group:*"
+          }
+        }
+      },
+      {
+        Sid    = "AllowMSKRoleDecrypt",
+        Effect = "Allow",
+        Principal = {
+          AWS = aws_iam_role.msk_role.arn
+        },
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey"
+        ],
         Resource = "*"
       }
     ]
