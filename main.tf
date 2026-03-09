@@ -81,34 +81,45 @@ resource "aws_kms_alias" "msk" {
 }
 
 resource "aws_iam_role" "msk_role" {
-  name               = "${var.cluster_name}-role"
-  assume_role_policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
-  tags               = local.common_tags
+  name = "${var.cluster_name}-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "kafka.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
 }
 
-data "aws_iam_policy_document" "msk_cloudwatch_policy" {
-  statement {
-    effect = "Allow"
+resource "aws_iam_policy" "msk_cloudwatch_logs_write" {
+  name        = "${var.cluster_name}-cloudwatch-logs"
+  description = "Allow MSK logs to CloudWatch"
 
-    actions = [
-      "logs:DescribeLogGroups",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-      "logs:DescribeLogStreams"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "logs:DescribeLogGroups",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ],
+        Resource = [
+          "${aws_cloudwatch_log_group.msk_broker_logs.arn}/*",
+          "arn:aws:logs:${var.region}:${var.account_id}:log-group:*"
+        ]
+      }
     ]
-    resources = ["${aws_cloudwatch_log_group.msk_broker_logs.arn}/*", "arn:aws:logs:${var.region}:${var.account_id}:log-group:*"]
-  }
+  })
 }
 
-resource "aws_iam_policy" "msk_iam_cloudwatch_policy" {
-  name   = "${var.cluster_name}-cloudwatch-policy"
-  policy = data.aws_iam_policy_document.msk_cloudwatch_policy.json
-  tags   = local.common_tags
-}
-
-resource "aws_iam_role_policy_attachment" "msk_cloudwatch_policy_attachment" {
+resource "aws_iam_role_policy_attachment" "attach_cloudwatch_logs" {
   role       = aws_iam_role.msk_role.name
-  policy_arn = aws_iam_policy.msk_iam_cloudwatch_policy.arn
+  policy_arn = aws_iam_policy.msk_cloudwatch_logs_write.arn
 }
 
 # CloudWatch Log Group for MSK
