@@ -169,24 +169,24 @@ resource "aws_iam_policy" "msk_permissions" {
           "kafka-cluster:DescribeCluster"
         ],
         Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:cluster/*"]
-        },
-        {
-          Effect = "Allow",
-          Action = [
-            "kafka-cluster:*Topic*",
-            "kafka-cluster:WriteData",
-            "kafka-cluster:ReadData"
-            ],
-            Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:topic/*"]
-        },
-        {
-          Effect = "Allow",
-          Action = [
-            "kafka-cluster:AlterGroup",
-            "kafka-cluster:DescribeGroup"
-            ],
-            "Resource": ["arn:aws:kafka:${var.region}:${var.account_id}:group/*"]
-        }
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "kafka-cluster:*Topic*",
+          "kafka-cluster:WriteData",
+          "kafka-cluster:ReadData"
+        ],
+        Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:topic/*"]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "kafka-cluster:AlterGroup",
+          "kafka-cluster:DescribeGroup"
+        ],
+        "Resource" : ["arn:aws:kafka:${var.region}:${var.account_id}:group/*"]
+      }
     ]
   })
 }

@@ -71,7 +71,7 @@ variable "account_id" {
 
 variable "kafka_version" {
   type    = string
-  default = "3.9.x"
+  default = "3.9.0"
 }
 
 variable "number_of_broker_nodes" {
