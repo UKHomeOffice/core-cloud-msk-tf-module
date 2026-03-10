@@ -241,6 +241,12 @@ resource "aws_msk_cluster" "msk_cluster" {
         certificate_authority_arns = var.ca_arn
       }
     }
+    dynamic "sasl" {
+      for_each = var.iam_authentication ? [] : [1]
+      content {
+        iam = sasl.value.iam
+      }
+    }
     unauthenticated = var.client_unauthenticated
   }
 

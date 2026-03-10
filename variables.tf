@@ -175,3 +175,9 @@ variable "client_unauthenticated" {
   type        = bool
   default     = true
 }
+
+variable "iam_authentication" {
+  description = "Enables IAM Role client authentication"
+  type        = bool
+  default     = false
+}
