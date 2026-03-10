@@ -32,12 +32,6 @@ variable "project_name" {
   default     = ""
 }
 
-variable "kms_alias" {
-  description = "KMS key alias for bucket encryption"
-  type        = string
-  nullable    = false
-}
-
 variable "vpc_cidr" {
   description = "VPC CIDR Range"
   type        = list(string)

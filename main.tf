@@ -32,74 +32,6 @@ resource "aws_security_group" "sg_msk" {
   }
 }
 
-
-resource "aws_kms_key" "msk" {
-  description             = "KMS key for MSK encryption"
-  deletion_window_in_days = 7
-  enable_key_rotation     = true
-
-  tags = local.common_tags
-}
-
-resource "aws_kms_key_policy" "msk_kms_policy" {
-  key_id = aws_kms_key.msk.id
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Id" : "msk_kms_policy",
-    "Statement" : [
-      {
-        "Sid" : "EnableIAMUserPermissions",
-        "Effect" : "Allow",
-        "Principal" : {
-          "AWS" : "arn:aws:iam::${var.account_id}:root"
-        },
-        "Action" : "kms:*",
-        "Resource" : "*"
-      },
-      {
-        Sid    = "Allow Logs"
-        Effect = "Allow"
-        Principal = {
-          Service = "logs.${var.region}.amazonaws.com"
-        }
-        Action = [
-          "kms:Encrypt",
-          "kms:Decrypt",
-          "kms:ReEncrypt*",
-          "kms:GenerateDataKey*",
-          "kms:CreateGrant",
-          "kms:DescribeKey"
-        ]
-        Resource = "*",
-        Condition = {
-          ArnLike = {
-            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${var.region}:${var.account_id}:log-group:*"
-          }
-        }
-      },
-      {
-        Sid    = "AllowMSKRoleDecrypt",
-        Effect = "Allow",
-        Principal = {
-          AWS = aws_iam_role.msk_role.arn
-        },
-        Action = [
-          "kms:Decrypt",
-          "kms:DescribeKey",
-          "kms:GenerateDataKey",
-          "kms:CreateGrant"
-        ],
-        Resource = ["arn:aws:kms:${var.region}:${var.account_id}:key/*}"]
-      }
-    ]
-  })
-}
-
-resource "aws_kms_alias" "msk" {
-  name          = "alias/${var.kms_alias}"
-  target_key_id = aws_kms_key.msk.id
-}
-
 resource "aws_iam_role" "msk_role" {
   name = "${var.cluster_name}-role"
 
@@ -200,7 +132,6 @@ resource "aws_iam_role_policy_attachment" "attach_msk_permissions" {
 resource "aws_cloudwatch_log_group" "msk_broker_logs" {
   name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
   retention_in_days = 365
-  kms_key_id        = aws_kms_key.msk.arn
   tags              = local.common_tags
 }
 
@@ -246,7 +177,6 @@ resource "aws_msk_cluster" "msk_cluster" {
 
 
   encryption_info {
-    encryption_at_rest_kms_key_arn = aws_kms_key.msk.arn
     encryption_in_transit {
       client_broker = "TLS"
       in_cluster    = true
