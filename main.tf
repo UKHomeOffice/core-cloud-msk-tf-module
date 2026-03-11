@@ -192,6 +192,12 @@ resource "aws_msk_cluster" "msk_cluster" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      client_authentication[0].tls
+    ]
+  }
+
   tags = local.common_tags
 }
 
@@ -271,6 +277,8 @@ resource "aws_iam_role_policy_attachment" "msk_ca_policy_attachment" {
   role       = aws_iam_role.msk_role.name
   policy_arn = aws_iam_policy.msk_iam_ca_policy.arn
 }
+
+
 
 locals {
   common_tags = merge(
