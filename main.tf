@@ -32,43 +32,106 @@ resource "aws_security_group" "sg_msk" {
   }
 }
 
+resource "aws_iam_role" "msk_role" {
+  name = "${var.cluster_name}-role"
 
-resource "aws_kms_key" "msk" {
-  description             = "KMS key for MSK encryption"
-  deletion_window_in_days = 7
-  enable_key_rotation     = true
-
-  tags = local.common_tags
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "kafka.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
 }
 
-resource "aws_kms_key_policy" "msk_kms_policy" {
-  key_id = aws_kms_key.msk.id
+resource "aws_iam_policy" "msk_cloudwatch_logs_write" {
+  name        = "${var.cluster_name}-cloudwatch-logs"
+  description = "Allow MSK logs to CloudWatch"
+
   policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Id" : "msk_kms_policy",
-    "Statement" : [
+    Version = "2012-10-17",
+    Statement = [
       {
-        "Sid" : "EnableIAMUserPermissions",
-        "Effect" : "Allow",
-        "Principal" : {
-          "AWS" : "arn:aws:iam::${var.account_id}:root"
-        },
-        "Action" : "kms:*",
-        "Resource" : "*"
+        Effect = "Allow",
+        Action = [
+          "logs:DescribeLogGroups",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ],
+        Resource = [
+          "${aws_cloudwatch_log_group.msk_broker_logs.arn}/*",
+          "arn:aws:logs:${var.region}:${var.account_id}:log-group:*"
+        ]
       }
     ]
   })
 }
 
-resource "aws_kms_alias" "msk" {
-  name          = "alias/${var.kms_alias}"
-  target_key_id = aws_kms_key.msk.id
+resource "aws_iam_role_policy_attachment" "attach_cloudwatch_logs" {
+  role       = aws_iam_role.msk_role.name
+  policy_arn = aws_iam_policy.msk_cloudwatch_logs_write.arn
 }
+
+resource "aws_iam_policy" "msk_permissions" {
+  name        = "${var.cluster_name}-permissions"
+  description = "Allow Kafka and KMS permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey",
+          "kms:CreateGrant",
+          "kafka-cluster:*",
+          "kafka:*"
+        ],
+        Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:cluster/*", "arn:aws:kafka:${var.region}:${var.account_id}:topic/*"]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "kafka-cluster:Connect",
+          "kafka-cluster:AlterCluster",
+          "kafka-cluster:DescribeCluster"
+        ],
+        Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:cluster/*"]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "kafka-cluster:*Topic*",
+          "kafka-cluster:WriteData",
+          "kafka-cluster:ReadData"
+        ],
+        Resource = ["arn:aws:kafka:${var.region}:${var.account_id}:topic/*"]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "kafka-cluster:AlterGroup",
+          "kafka-cluster:DescribeGroup"
+        ],
+        "Resource" : ["arn:aws:kafka:${var.region}:${var.account_id}:group/*"]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_msk_permissions" {
+  role       = aws_iam_role.msk_role.name
+  policy_arn = aws_iam_policy.msk_permissions.arn
+}
+
 # CloudWatch Log Group for MSK
 resource "aws_cloudwatch_log_group" "msk_broker_logs" {
   name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
   retention_in_days = 365
-  kms_key_id        = aws_kms_key.msk.id
   tags              = local.common_tags
 }
 
@@ -77,8 +140,6 @@ resource "aws_msk_cluster" "msk_cluster" {
   cluster_name           = "${var.project_name}-${var.cluster_name}-${var.environment}-msk"
   kafka_version          = var.kafka_version
   number_of_broker_nodes = var.number_of_broker_nodes
-
-
 
   broker_node_group_info {
     instance_type   = var.instance_type
@@ -105,16 +166,17 @@ resource "aws_msk_cluster" "msk_cluster" {
   storage_mode = var.storage_mode
 
   client_authentication {
+    unauthenticated = var.client_unauthenticated
     dynamic "tls" {
-      for_each = var.iam_authentication ? [] : [1]
+      for_each = var.tls_authentication ? [1] : []
       content {
-        certificate_authority_arns = length(var.ca_arn) != 0 ? var.ca_arn : [aws_acmpca_certificate_authority.msk_kafka_with_ca[count.index].arn]
+        certificate_authority_arns = [aws_acmpca_certificate_authority.msk_with_ca[0].arn]
       }
     }
   }
 
+
   encryption_info {
-    encryption_at_rest_kms_key_arn = aws_kms_key.msk.arn
     encryption_in_transit {
       client_broker = "TLS"
       in_cluster    = true
@@ -127,75 +189,10 @@ resource "aws_msk_cluster" "msk_cluster" {
         enabled   = true
         log_group = aws_cloudwatch_log_group.msk_broker_logs.name
       }
-      s3 {
-        enabled = true
-        bucket  = aws_s3_bucket.msk_logs.id
-        prefix  = "logs/msk-"
-      }
     }
   }
 
   tags = local.common_tags
-}
-
-## Logging s3 bucket
-
-resource "aws_s3_bucket" "msk_logs" {
-  bucket = "${var.project_name}-${var.cluster_name}-${var.environment}-logs"
-  tags   = local.common_tags
-}
-
-resource "aws_s3_bucket_public_access_block" "logs_access" {
-  bucket = aws_s3_bucket.msk_logs.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_versioning" "msk_logs_versioning" {
-  bucket = aws_s3_bucket.msk_logs.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "msk_logs" {
-  bucket = aws_s3_bucket.msk_logs.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.msk.arn
-      sse_algorithm     = "aws:kms"
-    }
-    bucket_key_enabled = true
-  }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "msk_logs" {
-  bucket = aws_s3_bucket.msk_logs.id
-
-  rule {
-    id     = "cc-bucket-lifecycle-rule-msk-logs"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = var.lifecycle_expiration_days
-    }
-  }
-
-  rule {
-    id     = "cc-abort-incomplete-multipart-uploads-msk-logs"
-    status = "Enabled"
-
-    # No filter → applies to all multipart uploads
-    filter {}
-
-    abort_incomplete_multipart_upload {
-      days_after_initiation = var.days_after_initiation
-    }
-  }
 }
 
 ## MSK Scaling
@@ -232,9 +229,9 @@ resource "aws_appautoscaling_policy" "msk_appautoscaling_policy" {
 }
 
 ## Certificate Authority
-resource "aws_acmpca_certificate_authority" "msk_with_ca" {
 
-  count = var.certificate_authority == "true" ? 1 : 0
+resource "aws_acmpca_certificate_authority" "msk_with_ca" {
+  count = var.certificate_authority == true ? 1 : 0
   tags  = local.common_tags
 
   certificate_authority_configuration {
@@ -242,113 +239,38 @@ resource "aws_acmpca_certificate_authority" "msk_with_ca" {
     signing_algorithm = "SHA512WITHRSA"
 
     subject {
-      common_name = "${var.cluster_name}-ca"
+      common_name = "${var.project_name}-${var.cluster_name}-ca"
     }
   }
 
   type                            = var.ca_type
   permanent_deletion_time_in_days = 7
-
 }
 
-resource "aws_iam_user" "msk_acmpca_iam_user" {
-  count = var.certificate_authority == "true" ? 1 : 0
-  name  = "${var.cluster_name}-acmpca-user"
-  path  = "/"
-  tags  = local.common_tags
+data "aws_iam_policy_document" "msk_ca_policy" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "acm-pca:IssueCertificate",
+      "acm-pca:GetCertificate",
+    ]
+    resources = [aws_msk_cluster.msk_cluster.arn]
+  }
 }
 
-#policy attachment for CA policy
-resource "aws_iam_policy" "acmpca_policy_with_msk_policy" {
-  count  = var.certificate_authority == "true" ? 1 : 0
-  name   = "${var.cluster_name}-acmpcaPolicy"
+resource "aws_iam_policy" "msk_iam_ca_policy" {
+  name   = "${var.cluster_name}-acmpca-policy"
+  policy = data.aws_iam_policy_document.msk_ca_policy.json
   tags   = local.common_tags
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "IAMacmpcaPermissions",
-      "Effect": "Allow",
-      "Action": [
-        "acm-pca:IssueCertificate",
-        "acm-pca:GetCertificate"
-      ],
-      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
-    }
-  ]
-}
-EOF
 }
 
-resource "aws_iam_policy_attachment" "msk_acmpca_iam_policy_attachment" {
-  count      = var.certificate_authority == "true" ? 1 : 0
-  name       = "${var.cluster_name}-acmpca-policy-attachment"
-  users      = [aws_iam_user.msk_acmpca_iam_user[count.index].name]
-  policy_arn = aws_iam_policy.acmpca_policy_with_msk_policy[count.index].arn
+resource "aws_iam_role_policy_attachment" "msk_ca_policy_attachment" {
+  count      = var.certificate_authority == true ? 1 : 0
+  role       = aws_iam_role.msk_role.name
+  policy_arn = aws_iam_policy.msk_iam_ca_policy.arn
 }
 
-resource "aws_iam_user" "msk_iam_user" {
-  name = "${var.cluster_name}-user"
-  path = "/"
-  tags = local.common_tags
-}
-
-resource "aws_iam_policy" "msk_iam_policy" {
-  name   = "${var.cluster_name}-policy"
-  tags   = local.common_tags
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "IAMPermissions",
-      "Effect": "Allow",
-      "Action": [
-        "cloudwatch:ListMetrics",
-        "cloudwatch:GetMetricStatistics"
-      ],
-      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_policy_attachment" "msk_iam_policy_attachment" {
-  name       = "${var.cluster_name}-policy-attachment"
-  users      = [aws_iam_user.msk_iam_user.name]
-  policy_arn = aws_iam_policy.msk_iam_policy.arn
-}
-
-resource "aws_iam_policy" "msk_iam_authentication" {
-  tags        = local.common_tags
-  name        = "${var.cluster_name}-iam-auth-policy"
-  description = "This policy allow IAM authenticated user to connect to MSK"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "IAMPermissions",
-      "Effect": "Allow",
-      "Action": [
-        "kafka-cluster:*"
-      ],
-      "Resource": "${aws_msk_cluster.msk_cluster.arn}"
-    }
-  ]
-}
-EOF
-}
-
-
-resource "aws_iam_policy_attachment" "msk_iam_authentication_policy" {
-  count      = var.certificate_authority == "true" ? 1 : 0
-  name       = "${var.cluster_name}-authentication-policy-attachment"
-  users      = [aws_iam_user.msk_iam_user.name]
-  policy_arn = aws_iam_policy.msk_iam_authentication[count.index].arn
-}
 
 
 locals {

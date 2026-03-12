@@ -3,6 +3,12 @@ variable "environment" {
   type        = string
 }
 
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "eu-west-2"
+}
+
 variable "vpc_id" {
   description = "The MSK cluster's VPC ID"
   type        = string
@@ -24,12 +30,6 @@ variable "project_name" {
   description = "Name of the project"
   type        = string
   default     = ""
-}
-
-variable "kms_alias" {
-  description = "KMS key alias for bucket encryption"
-  type        = string
-  nullable    = false
 }
 
 variable "vpc_cidr" {
@@ -65,7 +65,7 @@ variable "account_id" {
 
 variable "kafka_version" {
   type    = string
-  default = "3.8.0"
+  default = "3.9.x"
 }
 
 variable "number_of_broker_nodes" {
@@ -102,18 +102,6 @@ variable "storage_mode" {
   default     = "LOCAL"
 }
 
-variable "lifecycle_expiration_days" {
-  description = "Number of days to keep s3 objects before expiration"
-  type        = number
-  default     = 30
-}
-
-variable "days_after_initiation" {
-  description = "Specifies the number of days after initiating a multipart upload when the multipart upload must be completed."
-  default     = 15
-  type        = number
-}
-
 variable "storage_autoscaling_max_capacity" {
   description = "The MSK cluster EBS maximum volume size for each broker. Value between 1 and 16384."
   type        = number
@@ -143,23 +131,29 @@ variable "storage_autoscaling_threshold" {
 variable "certificate_authority" {
   description = "True if PCA should be created on cluster creation and there is not an existing CA to use"
   type        = bool
-  default     = false
+  default     = null
 }
 
 variable "ca_type" {
   description = "The type of the certificate authority"
   type        = string
-  default     = "SUBORDINATE"
-}
-
-variable "iam_authentication" {
-  description = "Enables IAM client authentication"
-  type        = bool
-  default     = false
+  default     = "ROOT"
 }
 
 variable "ca_arn" {
   description = "ARN of the AWS managed CA to attach to the MSK cluster"
   default     = []
   type        = list(string)
+}
+
+variable "tls_authentication" {
+  description = "Enables TLS client authentication"
+  type        = bool
+  default     = false
+}
+
+variable "client_unauthenticated" {
+  description = "True if no client authentication. Should be false if TLS authentication enabled."
+  type        = bool
+  default     = true
 }
