@@ -19,3 +19,9 @@ output "msk_sg_id" {
   value       = aws_security_group.sg_msk.id
   sensitive   = true
 }
+
+output "msk_cluster_ca_arn" {
+  description = "The MSK cluster CA arn"
+  value       = aws_acmpca_certificate_authority.msk_with_ca.arn
+  sensitive   = true
+}
