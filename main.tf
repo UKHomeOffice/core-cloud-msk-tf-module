@@ -239,13 +239,12 @@ resource "aws_acmpca_certificate_authority" "msk_with_ca" {
     signing_algorithm = "SHA512WITHRSA"
 
     subject {
-      common_name = "${var.cluster_name}-ca"
+      common_name = "${var.project_name}-${var.cluster_name}-ca"
     }
   }
 
   type                            = var.ca_type
   permanent_deletion_time_in_days = 7
-
 }
 
 data "aws_iam_policy_document" "msk_ca_policy" {

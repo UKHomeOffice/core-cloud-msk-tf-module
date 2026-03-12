@@ -149,7 +149,7 @@ variable "certificate_authority" {
 variable "ca_type" {
   description = "The type of the certificate authority"
   type        = string
-  default     = "SUBORDINATE"
+  default     = "ROOT"
 }
 
 variable "ca_arn" {
