@@ -192,12 +192,6 @@ resource "aws_msk_cluster" "msk_cluster" {
     }
   }
 
-  lifecycle {
-    ignore_changes = [
-      client_authentication[0].tls
-    ]
-  }
-
   tags = local.common_tags
 }
 
