@@ -128,10 +128,43 @@ resource "aws_iam_role_policy_attachment" "attach_msk_permissions" {
   policy_arn = aws_iam_policy.msk_permissions.arn
 }
 
+resource "aws_kms_key" "msk" {
+  description             = "KMS key for MSK encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = local.common_tags
+}
+
+resource "aws_kms_key_policy" "msk_kms_policy" {
+  key_id = aws_kms_key.msk.id
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Id" : "msk_kms_policy",
+    "Statement" : [
+      {
+        "Sid" : "EnableIAMUserPermissions",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${var.account_id}:root"
+        },
+        "Action" : "kms:*",
+        "Resource" : "*"
+      }
+    ]
+  })
+}
+
+resource "aws_kms_alias" "msk" {
+  name          = "alias/${var.project_name}-${var.cluster_name}"
+  target_key_id = aws_kms_key.msk.id
+}
+
 # CloudWatch Log Group for MSK
 resource "aws_cloudwatch_log_group" "msk_broker_logs" {
   name              = "/aws/msk/${var.project_name}-${var.cluster_name}-${var.environment}-msk-broker"
   retention_in_days = 365
+  kms_key_id        = aws_kms_key.msk.arn
   tags              = local.common_tags
 }
 
