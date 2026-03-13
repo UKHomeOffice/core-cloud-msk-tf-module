@@ -49,7 +49,7 @@ run "validate_open_monitoring" {
   }
 
   assert {
-    condition     = aws_msk_cluster.msk_cluster.open_monitoring[1].prometheus[1].node_exporter[0].enabled_in_broker == true
+    condition     = aws_msk_cluster.msk_cluster.open_monitoring[0].prometheus[0].node_exporter[0].enabled_in_broker == true
     error_message = "MSK Node Exporter monitoring is enabled"
   }
 }
