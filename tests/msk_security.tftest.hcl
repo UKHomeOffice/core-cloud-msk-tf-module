@@ -44,12 +44,12 @@ run "validate_open_monitoring" {
   }
 
   assert {
-    condition     = aws_msk_cluster.msk_cluster.open_monitoring[0].prometheus.jmx_exporter.enabled_in_broker == true
+    condition     = aws_msk_cluster.msk_cluster.open_monitoring[0].prometheus[0].jmx_exporter.enabled_in_broker == true
     error_message = "MSK JMX Exporter monitoring is enabled"
   }
 
   assert {
-    condition     = aws_msk_cluster.msk_cluster.open_monitoring[1].prometheus.node_exporter.enabled_in_broker == true
+    condition     = aws_msk_cluster.msk_cluster.open_monitoring[1].prometheus[1].node_exporter.enabled_in_broker == true
     error_message = "MSK Node Exporter monitoring is enabled"
   }
 }
