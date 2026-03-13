@@ -37,8 +37,8 @@ jobs:
       - name: terraform init (no backend)
         run: terraform init -backend=false
 
-#      - name: Terraform tests
-#        run: terraform test -no-color
+      - name: Terraform tests
+        run: terraform test -no-color
 
       - name: terraform validate
         run: terraform validate
