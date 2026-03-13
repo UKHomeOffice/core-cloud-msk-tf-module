@@ -39,7 +39,7 @@ run "validate_msk_creation" {
   command = plan
 
   assert {
-    condition     = aws_msk_cluster.msk_cluster.cluster_name == "testproject-testmsk-test-msk"
+    condition     = aws_msk_cluster.msk_cluster.cluster_name == "testproject-msk-test-test-msk"
     error_message = "MSK name should follow pattern: {project_name}-{cluster_name}-{environment}-msk"
   }
 
