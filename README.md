@@ -33,8 +33,6 @@ Please refer to the [Official Hashicorp Terraform Test documentation](https://de
 
 ## Usage 
 
-## Usage 
-
 Recommended settings:
 
 - Opt into Open Monitoring (prometheus_jmx_exporter and prometheus_node_exporter)
