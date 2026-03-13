@@ -38,7 +38,7 @@ variable "vpc_cidr" {
 }
 
 variable "tags" {
-  description = "Tags to be applied to the bucket"
+  description = "Tags to be applied to the MSK"
   type        = map(string)
   default     = {}
 

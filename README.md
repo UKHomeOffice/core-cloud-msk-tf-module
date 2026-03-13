@@ -12,7 +12,9 @@ Terraform validate, Terraform fmt, TFLint, Checkov scan, Sonarqube scan and Sema
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>---| [pull-request-semver-label-check.yaml](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/.github/workflows/pull-request-semver-label-check.yaml)</strong> - Verifies all PRs to main raised in the module must have an appropriate semver label: major/minor/patch. \
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>---| [pull-request-semver-tag-merge.yaml](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/.github/workflows/pull-request-semver-tag-merge.yaml)</strong> - Calculates the new semver value depending on the PR label and tags the repository with the correct tag. \
 <strong>---| tests</strong> \
-&nbsp;&nbsp;<strong>---| [msk.tftest.hcl](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/tests/msk.tftest.hcl)</strong> \
+&nbsp;&nbsp;<strong>---| [msk.tftest.hcl](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/tests/msk_basic.tftest.hcl)</strong> \
+&nbsp;&nbsp;<strong>---| [msk.tftest.hcl](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/tests/msk_security.tftest.hcl)</strong> \
+&nbsp;&nbsp;<strong>---| [msk.tftest.hcl](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/tests/msk_tagging.tftest.hcl)</strong> \
 <strong>---| [CHANGELOG.md](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/CHANGELOG.md)</strong> - Contains all significant changes in relation to a semver tag made to this module. \
 <strong>---| [CODEOWNERS](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/CODEOWNERS)</strong> \
 <strong>---| [CODE_OF_CONDUCT](https://github.com/UKHomeOffice/core-cloud-msk-tf-module/blob/main/CODE_OF_CONDUCT.md)</strong> \
@@ -142,7 +144,7 @@ No modules.
 | <a name="input_storage_autoscaling_threshold"></a> [storage\_autoscaling\_threshold](#input\_storage\_autoscaling\_threshold) | The percentage threshold that needs to be exceeded to trigger a scale up. Value between 10 and 80. | `number` | `65` | no |
 | <a name="input_storage_mode"></a> [storage\_mode](#input\_storage\_mode) | Specify the storage mode for MSK brokers. Valid values: LOCAL (default) or TIERED. | `string` | `"LOCAL"` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnets that the MSK cluster should run in | `list(string)` | n/a | yes |
-| <a name="input_tags"></a> [tags](#input\_tags) | Tags to be applied to the bucket | `map(string)` | `{}` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | Tags to be applied to the msk | `map(string)` | `{}` | no |
 | <a name="input_tls_authentication"></a> [tls\_authentication](#input\_tls\_authentication) | Enables TLS client authentication | `bool` | `false` | no |
 | <a name="input_vpc_cidr"></a> [vpc\_cidr](#input\_vpc\_cidr) | VPC CIDR Range | `list(string)` | n/a | yes |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | The MSK cluster's VPC ID | `string` | n/a | yes |

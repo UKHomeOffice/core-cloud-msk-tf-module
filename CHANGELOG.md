@@ -10,3 +10,6 @@ eg:
 
   * Readme Update.
 
+### [0.0.3] 2026-03-13
+
+  * Adding Terraform tests.
