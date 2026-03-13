@@ -39,47 +39,47 @@ run "validate_required_tags_on_msk" {
   command = plan
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "cost-centre")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "cost-centre")
     error_message = "cost-centre tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "account-code")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "account-code")
     error_message = "account-code tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "portfolio-id")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "portfolio-id")
     error_message = "portfolio-id tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "project-id")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "project-id")
     error_message = "project-id tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "service-id")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "service-id")
     error_message = "service-id tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "environment-type")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "environment-type")
     error_message = "environment-type tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "owner-business")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "owner-business")
     error_message = "owner-business tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "budget-holder")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "budget-holder")
     error_message = "budget-holder tag must be present on MSK instance"
   }
 
   assert {
-    condition     = contains(keys(aws_msk_cluster.this.tags), "source-repo")
+    condition     = contains(keys(aws_msk_cluster.msk_cluster.tags), "source-repo")
     error_message = "source-repo tag must be present on MSK instance"
   }
 }
@@ -93,17 +93,17 @@ run "validate_tag_values" {
   }
 
   assert {
-    condition     = aws_msk_cluster.this.tags["Environment"] == "test"
+    condition     = aws_msk_cluster.msk_cluster.tags["Environment"] == "test"
     error_message = "Environment tag must match the environment variable"
   }
 
   assert {
-    condition     = aws_msk_cluster.this.tags["Project"] == "test"
+    condition     = aws_msk_cluster.msk_cluster.tags["Project"] == "test"
     error_message = "Project tag must match the project_name variable"
   }
 
   assert {
-    condition     = aws_msk_cluster.this.tags["ManagedBy"] == "terraform"
+    condition     = aws_msk_cluster.msk_cluster.tags["ManagedBy"] == "terraform"
     error_message = "ManagedBy tag must be set to 'terraform'"
   }
 }
@@ -130,17 +130,17 @@ run "validate_additional_tags_merged" {
 
   # Verify additional tags from var.tags are merged
   assert {
-    condition     = aws_msk_cluster.this.tags["cost-centre"] == "CC1000"
+    condition     = aws_msk_cluster.msk_cluster.tags["cost-centre"] == "CC1000"
     error_message = "Additional tags from var.tags must be merged into MSK tags"
   }
 
   assert {
-    condition     = can(aws_msk_cluster.this.tags["CustomTag"])
+    condition     = can(aws_msk_cluster.msk_cluster.tags["CustomTag"])
     error_message = "Custom tags from var.tags must be present on MSK cluster"
   }
 
   assert {
-    condition     = contains(["test"], aws_msk_cluster.this.tags["Environment"])
+    condition     = contains(["test"], aws_msk_cluster.msk_cluster.tags["Environment"])
     error_message = "Environment tag should be: test"
   }
 }

@@ -39,12 +39,12 @@ run "validate_msk_creation" {
   command = plan
 
   assert {
-    condition     = aws_msk_cluster.this.msk == "testproject-testmsk-test-msk"
+    condition     = aws_msk_cluster.msk_cluster.msk == "testproject-testmsk-test-msk"
     error_message = "MSK name should follow pattern: {project_name}-{cluster_name}-{environment}-msk"
   }
 
   assert {
-    condition     = can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", aws_msk_cluster.this.msk))
+    condition     = can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", aws_msk_cluster.msk_cluster.msk))
     error_message = "MSK name must follow AWS naming conventions (lowercase, numbers, hyphens)"
   }
 }

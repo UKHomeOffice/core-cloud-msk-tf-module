@@ -44,12 +44,12 @@ run "validate_open_monitoring" {
   }
 
   assert {
-    condition     = aws_msk_cluster.this.jmx_exporter_monitoring_enabled == true
+    condition     = aws_msk_cluster.msk_cluster.jmx_exporter_monitoring_enabled == true
     error_message = "MSK JMX Exporter monitoring is enabled"
   }
 
   assert {
-    condition     = aws_msk_cluster.this.node_exporter_monitoring_enabled == true
+    condition     = aws_msk_cluster.msk_cluster.node_exporter_monitoring_enabled == true
     error_message = "MSK Node Exporter monitoring is enabled"
   }
 }
