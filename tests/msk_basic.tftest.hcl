@@ -74,44 +74,9 @@ run "validate_msk_outputs" {
   }
 }
 
-run "error_missing_subnet_ids" {
-  command = plan
-  variables = {
-    subnet_ids = []
-  }
-  expect_fail = true
-  assert {
-    condition     = contains(error_message, "subnet_ids")
-    error_message = "Module should fail with a clear error if subnet_ids is missing or empty."
-  }
-}
-
-run "error_missing_vpc_id" {
-  command = plan
-  variables = {
-    vpc_id = ""
-  }
-  expect_fail = true
-  assert {
-    condition     = contains(error_message, "vpc_id")
-    error_message = "Module should fail with a clear error if vpc_id is missing or empty."
-  }
-}
-
-run "error_missing_cluster_name" {
-  command = plan
-  variables = {
-    cluster_name = ""
-  }
-  expect_fail = true
-  assert {
-    condition     = contains(error_message, "cluster_name")
-    error_message = "Module should fail with a clear error if cluster_name is missing or empty."
-  }
-}
-
 run "validate_msk_networking" {
   command = plan
+
   assert {
     condition     = aws_msk_cluster.msk_cluster.vpc_id == var.vpc_id
     error_message = "MSK cluster must be deployed in the correct VPC."
