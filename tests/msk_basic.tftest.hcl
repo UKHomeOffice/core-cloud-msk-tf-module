@@ -48,3 +48,76 @@ run "validate_msk_creation" {
     error_message = "MSK name must follow AWS naming conventions (lowercase, numbers, hyphens)"
   }
 }
+
+run "validate_msk_outputs" {
+  command = plan
+
+  assert {
+    condition     = length(output.zookeeper_connect_string.value) > 0
+    error_message = "zookeeper_connect_string output must not be empty"
+  }
+  assert {
+    condition     = length(output.bootstrap_brokers_tls.value) > 0
+    error_message = "bootstrap_brokers_tls output must not be empty"
+  }
+  assert {
+    condition     = can(regex("^arn:aws:kafka:[a-z0-9-]+:[0-9]+:cluster/", output.msk_cluster_arn.value))
+    error_message = "msk_cluster_arn output must be a valid MSK cluster ARN"
+  }
+  assert {
+    condition     = can(regex("^sg-", output.msk_sg_id.value))
+    error_message = "msk_sg_id output must be a valid security group ID"
+  }
+  assert {
+    condition     = can(regex("^arn:aws:acm-pca:[a-z0-9-]+:[0-9]+:certificate-authority/", output.msk_cluster_ca_arn.value))
+    error_message = "msk_cluster_ca_arn output must be a valid ACM PCA ARN"
+  }
+}
+
+run "error_missing_subnet_ids" {
+  command = plan
+  variables = {
+    subnet_ids = []
+  }
+  expect_fail = true
+  assert {
+    condition     = contains(error_message, "subnet_ids")
+    error_message = "Module should fail with a clear error if subnet_ids is missing or empty."
+  }
+}
+
+run "error_missing_vpc_id" {
+  command = plan
+  variables = {
+    vpc_id = ""
+  }
+  expect_fail = true
+  assert {
+    condition     = contains(error_message, "vpc_id")
+    error_message = "Module should fail with a clear error if vpc_id is missing or empty."
+  }
+}
+
+run "error_missing_cluster_name" {
+  command = plan
+  variables = {
+    cluster_name = ""
+  }
+  expect_fail = true
+  assert {
+    condition     = contains(error_message, "cluster_name")
+    error_message = "Module should fail with a clear error if cluster_name is missing or empty."
+  }
+}
+
+run "validate_msk_networking" {
+  command = plan
+  assert {
+    condition     = aws_msk_cluster.msk_cluster.vpc_id == var.vpc_id
+    error_message = "MSK cluster must be deployed in the correct VPC."
+  }
+  assert {
+    condition     = length(aws_msk_cluster.msk_cluster.subnet_ids) == length(var.subnet_ids)
+    error_message = "MSK cluster must be deployed in the correct number of subnets."
+  }
+}
