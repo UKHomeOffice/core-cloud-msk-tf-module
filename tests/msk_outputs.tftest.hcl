@@ -35,16 +35,23 @@ variables {
   }
 }
 
-run "validate_msk_creation" {
+run "validate_msk_outputs" {
   command = plan
-
   assert {
-    condition     = aws_msk_cluster.msk_cluster.cluster_name == "testproject-msk-test-test-msk"
-    error_message = "MSK name should follow pattern: {project_name}-{cluster_name}-{environment}-msk"
+    condition     = length(output.zookeeper_connect_string.value) > 0
+    error_message = "zookeeper_connect_string output must not be empty"
   }
-
   assert {
-    condition     = can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", aws_msk_cluster.msk_cluster.cluster_name))
-    error_message = "MSK name must follow AWS naming conventions (lowercase, numbers, hyphens)"
+    condition     = length(output.bootstrap_brokers_tls.value) > 0
+    error_message = "bootstrap_brokers_tls output must not be empty"
+  }
+  assert {
+    condition     = can(regex("^arn:aws:kafka:[a-z0-9-]+:[0-9]+:cluster/", output.msk_cluster_arn.value))
+    error_message = "msk_cluster_arn output must be a valid MSK cluster ARN"
+  }
+  assert {
+    condition     = can(regex("^sg-", output.msk_sg_id.value))
+    error_message = "msk_sg_id output must be a valid security group ID"
   }
 }
+
