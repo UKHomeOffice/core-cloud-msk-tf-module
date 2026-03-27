@@ -17,3 +17,7 @@ eg:
 ### [0.0.4] 2026-03-27
 
   * Adding Dependabot PR workflow.
+
+### [0.0.5] 2026-03-27
+
+  * Test Dependabot PR
