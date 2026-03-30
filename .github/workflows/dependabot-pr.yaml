@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Send Dependabot PR to Slack
       ## slack-github-action@v1.26.0
-        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
